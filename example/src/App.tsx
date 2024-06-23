@@ -6,9 +6,7 @@ import {
   Platform,
   Text,
   Alert,
-  NativeModules,
   requireNativeComponent,
-  NativeEventEmitter,
 } from 'react-native';
 
 const CustomQRCodeScanner = requireNativeComponent('CustomQRCodeScanner');
@@ -20,16 +18,17 @@ const App = () => {
     const requestCameraPermission = async () => {
       if (Platform.OS === 'android') {
         try {
-          const granted = await PermissionsAndroid.request(
-            PermissionsAndroid.PERMISSIONS.CAMERA,
-            {
-              title: 'Camera Permission',
-              message: 'This app needs camera permission to scan QR codes',
-              buttonNeutral: 'Ask Me Later',
-              buttonNegative: 'Cancel',
-              buttonPositive: 'OK',
-            }
-          );
+          const cameraPermission = PermissionsAndroid.PERMISSIONS.CAMERA;
+          if (!cameraPermission) {
+            throw new Error('Camera permission is undefined');
+          }
+          const granted = await PermissionsAndroid.request(cameraPermission, {
+            title: 'Camera Permission',
+            message: 'This app needs camera permission to scan QR codes',
+            buttonNeutral: 'Ask Me Later',
+            buttonNegative: 'Cancel',
+            buttonPositive: 'OK',
+          });
           if (granted === PermissionsAndroid.RESULTS.GRANTED) {
             setHasPermission(true);
           } else {
@@ -46,22 +45,6 @@ const App = () => {
 
     requestCameraPermission();
   }, []);
-
-  useEffect(() => {
-    if (hasPermission) {
-      const eventEmitter = new NativeEventEmitter(
-        NativeModules.CustomQRCodeScanner
-      );
-      const subscription = eventEmitter.addListener('onQRCodeRead', (event) => {
-        console.log('QR Code Scanned:', event.data);
-        Alert.alert(`QR Code Scanned: ${event.data}`);
-      });
-
-      return () => {
-        subscription.remove();
-      };
-    }
-  }, [hasPermission]);
 
   if (!hasPermission) {
     return (
